@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { ethers } from "ethers";
 import BigNumber from 'bignumber.js';
-import { ContractCallContext, Multicall } from 'ethereum-multicall';
+import { ContractCallContext } from 'ethereum-multicall';
 import config from 'config';
 import { Market } from 'types';
 
@@ -36,7 +36,7 @@ function getTokenData(address) {
 
 const dataToString = (i, d) => ethers.BigNumber.from(d?.[i])?.toString();
 
-function parseMarketMetadata(data, underlyingPrice) {
+function parseMarketMetadata(data, underlyingPrice, vTokenDecimal) {
   const paramMapping = {
     "exchangeRate": 1,
     "supplyRatePerBlock": 2,
@@ -58,20 +58,40 @@ function parseMarketMetadata(data, underlyingPrice) {
 
   marketMetadata["underlyingPrice"] = underlyingPrice;
 
-  const { underlyingDecimal } = marketMetadata;
+  const { underlyingDecimal, exchangeRate } = marketMetadata;
 
-  const formatUnderlying = (amount) =>
-  ethers.utils.formatUnits(amount, underlyingDecimal);
+  const formatSupplyUnderlying = (amount) =>
+    ethers.utils.formatUnits(amount, vTokenDecimal);
+  const formatBorrowUnderlying = (amount) =>
+    ethers.utils.formatUnits(amount, underlyingDecimal);
 
-  const usdValue = (amount) => {
+  const usdSupplyValue = (amount) => {
+    const totalSupply = new BigNumber(amount);
+
+    const underlyingSupplyRaw = totalSupply.times(exchangeRate).div("1e18");
+
+    const underlyingSupplyBase = new BigNumber(10).pow(underlyingDecimal);
+    const underlyingSupply = underlyingSupplyRaw.div(underlyingSupplyBase);
+
+    const underlyingUsdRaw = underlyingSupply.times(underlyingPrice);
+    const priceDecimals = new BigNumber(36).minus(underlyingDecimal);
+
+    const priceBase = new BigNumber(10).pow(priceDecimals);
+    const underlyingUsd = underlyingUsdRaw.div(priceBase);
+
+    return underlyingUsd;
+  };
+
+  const usdBorrowValue = (amount) => {
     const base = ethers.constants.WeiPerEther.toString(); // 1e18
     return (new BigNumber(amount)).times(underlyingPrice).div(base).div(base);
   };
 
-  for (const total of ["totalBorrows", "totalSupply"]) {
-    marketMetadata[`${total}2`] = formatUnderlying(marketMetadata[total]);
-    marketMetadata[`${total}Usd`] = usdValue(marketMetadata[total]);
-  }
+  marketMetadata["totalSupply2"] = formatSupplyUnderlying(marketMetadata["totalSupply"]);
+  marketMetadata["totalSupplyUsd"] = usdSupplyValue(marketMetadata["totalSupply"]);
+
+  marketMetadata["totalBorrows2"] = formatBorrowUnderlying(marketMetadata["totalBorrows"]);
+  marketMetadata["totalBorrowsUsd"] = usdBorrowValue(marketMetadata["totalBorrows"]);
 
   return marketMetadata;
 }
@@ -244,15 +264,16 @@ const getMainMarkets = async ({
     const price = pricesResults[address];
     const underlyingPrice = dataToString(1, price);
 
-    const marketMetadata = parseMarketMetadata(data, underlyingPrice);
+    const vTokenDecimal = VBEP_TOKENS[address.toLowerCase()].decimals;
+    const marketMetadata = parseMarketMetadata(data, underlyingPrice, vTokenDecimal);
 
     const comptrollerData = parseComptrollerData(comptrollerReturnContext, address);
 
     const apyData = getApyData(marketMetadata);
 
-    const { exchangeRate } = marketMetadata;
-    const base = ethers.constants.WeiPerEther.toString(); // 1e18
-    const tokenPrice = (new BigNumber(underlyingPrice)).times(exchangeRate).div(base).div(base);
+    const { underlyingDecimal } = marketMetadata;
+    const divisor = new BigNumber(10).pow(new BigNumber(36).minus(underlyingDecimal));
+    const tokenPrice = (new BigNumber(underlyingPrice)).div(divisor);
 
     const { compBorrowSpeeds, compSupplySpeeds } = marketMetadata;
     const borrowerDailyVenus = BLOCKS_PER_DAY.times(compBorrowSpeeds);
@@ -270,7 +291,7 @@ const getMainMarkets = async ({
       balance = ethers.BigNumber.from(ethReturnContext?.[0]?.returnValues?.[0]);
     }
 
-    const { underlyingDecimal } = marketMetadata;
+    const base = ethers.constants.WeiPerEther.toString(); // 1e18
     const liquidity = ethers.utils.formatUnits(
       balance.mul(underlyingPrice).div(base),
       underlyingDecimal
