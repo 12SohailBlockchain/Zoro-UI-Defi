@@ -1,38 +1,26 @@
 /** @jsxImportSource @emotion/react */
-import { useStyles as useSharedStyles } from '../styles'
-import Notice from './Notice'
-import SubmitSection from './SubmitSection'
-import TEST_IDS from './testIds'
-import useForm, { FormValues, UseFormInput } from './useForm'
-import BigNumber from 'bignumber.js'
+import { useStyles as useSharedStyles } from '../styles';
+import Notice from './Notice';
+import SubmitSection from './SubmitSection';
+import TEST_IDS from './testIds';
+import useForm, { FormValues, UseFormInput } from './useForm';
+import BigNumber from 'bignumber.js';
 //import { useSupply, useSwapTokensAndSupply } from 'clients/api';
-import { useSupply } from 'clients/api'
-import {
-  AccountData,
-  Delimiter,
-  IsolatedAssetWarning,
-  LabeledInlineContent,
-  SelectTokenTextField,
-  Toggle,
-  TokenTextField,
-  toast
-} from 'components'
-import { TOKENS } from 'constants/tokens'
-import { useAuth } from 'context/AuthContext'
-import { VError, formatVErrorToReadableString } from 'errors'
-import useCollateral from 'hooks/useCollateral'
-import useFormatTokensToReadableValue from 'hooks/useFormatTokensToReadableValue'
+import { useSupply } from 'clients/api';
+import { AccountData, Delimiter, IsolatedAssetWarning, LabeledInlineContent, SelectTokenTextField, Toggle, TokenTextField, toast } from 'components';
+import { TOKENS } from 'constants/tokens';
+import { useAuth } from 'context/AuthContext';
+import { VError, formatVErrorToReadableString } from 'errors';
+import useCollateral from 'hooks/useCollateral';
+import useFormatTokensToReadableValue from 'hooks/useFormatTokensToReadableValue';
 //import useGetSwapInfo from 'hooks/useGetSwapInfo';
-import useGetSwapTokenUserBalances from 'hooks/useGetSwapTokenUserBalances'
-import React, { useCallback, useMemo, useState } from 'react'
-import { useTranslation } from 'translation'
-import { Asset, Pool, Swap, SwapError, TokenBalance } from 'types'
-import {
-  areTokensEqual,
-  convertTokensToWei,
-  convertWeiToTokens,
-  isFeatureEnabled
-} from 'utilities'
+import useGetSwapTokenUserBalances from 'hooks/useGetSwapTokenUserBalances';
+import { useGetAllowance } from 'clients/api';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'translation';
+import { Asset, Pool, Swap, SwapError, TokenBalance } from 'types';
+import { areTokensEqual, convertTokensToWei, convertWeiToTokens, isFeatureEnabled } from 'utilities';
+
 
 export const PRESET_PERCENTAGES = [25, 50, 75, 100]
 
@@ -48,6 +36,7 @@ export interface SupplyFormUiProps {
   isSwapLoading: boolean
   swap?: Swap
   swapError?: SwapError
+  setIsValidAllowance: () => void
 }
 
 export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
@@ -61,11 +50,23 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
   formValues,
   isSwapLoading,
   swap,
-  swapError
+  swapError,
+  setIsValidAllowance,
 }) => {
   const { t, Trans } = useTranslation()
   const sharedStyles = useSharedStyles()
   const { CollateralModal, toggleCollateral } = useCollateral()
+  const { accountAddress } = useAuth();
+  const {
+    data: getTokenAllowanceData
+  } = useGetAllowance(
+    {
+      token: formValues.fromToken,
+      spenderAddress: asset.vToken.address,
+      accountAddress,
+    },
+    { enabled: !!accountAddress && !formValues.fromToken.isNative }
+  );
 
   const isIntegratedSwapEnabled = useMemo(
     () =>
@@ -112,6 +113,22 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
     tokenBalances
   ])
 
+  const tokenAllowance = useMemo(
+    () =>
+      convertWeiToTokens({
+        valueWei: getTokenAllowanceData?.allowanceWei || new BigNumber(0),
+        token: formValues.fromToken,
+      }),
+    [formValues.fromToken]
+  );
+
+  const isApprove = useMemo(() => {
+    if (formValues.amountTokens && tokenAllowance)
+      return new BigNumber(formValues.amountTokens).isGreaterThan(tokenAllowance);
+    else
+      return false;
+  }, [formValues.amountTokens]);
+
   const { handleSubmit, isFormValid, formError } = useForm({
     asset,
     fromTokenUserWalletBalanceTokens,
@@ -145,18 +162,30 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
   }
 
   const handleRightMaxButtonClick = useCallback(() => {
+
     // Update field value to correspond to user's wallet balance
-    setFormValues(currentFormValues => ({
+
+    setFormValues((currentFormValues) => ({
       ...currentFormValues,
-      amountTokens: new BigNumber(
-        fromTokenUserWalletBalanceTokens || 0
-      ).toFixed()
-    }))
-  }, [fromTokenUserWalletBalanceTokens])
+      amountTokens: fromTokenUserWalletBalanceTokens.toFixed(),
+    }));
+  }, [fromTokenUserWalletBalanceTokens]);
+
+  const handleSubmitWithAllowanceCheck = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
+
+    if (formValues.amountTokens && tokenAllowance) {
+      if (new BigNumber(formValues.amountTokens).isGreaterThan(tokenAllowance)) {
+        setIsValidAllowance(false);
+      } else {
+        handleSubmit();
+      }
+    }    
+  }
 
   return (
     <>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmitWithAllowanceCheck}>
         {pool.isIsolated && (
           <IsolatedAssetWarning
             token={asset.vToken.underlyingToken}
@@ -284,6 +313,7 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
           toToken={asset.vToken.underlyingToken}
           fromToken={formValues.fromToken}
           fromTokenAmountTokens={formValues.amountTokens}
+          isApprove={isApprove}
         />
       </form>
 
@@ -295,13 +325,15 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
 export interface SupplyFormProps {
   asset: Asset
   pool: Pool
-  onCloseModal: () => void
+  onCloseModal: () => void,
+  setIsValidAllowance: () => void,
 }
 
 const SupplyForm: React.FC<SupplyFormProps> = ({
   asset,
   pool,
-  onCloseModal
+  onCloseModal,
+  setIsValidAllowance,
 }) => {
   const { accountAddress } = useAuth()
 
@@ -394,6 +426,7 @@ const SupplyForm: React.FC<SupplyFormProps> = ({
       tokenBalances={tokenBalances}
       onSubmit={onSubmit}
       isSubmitting={isSubmitting}
+      setIsValidAllowance={setIsValidAllowance}
     />
   )
 }
