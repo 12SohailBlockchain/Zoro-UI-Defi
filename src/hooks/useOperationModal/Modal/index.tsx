@@ -5,9 +5,10 @@ import SupplyForm from "./SupplyForm";
 import WithdrawForm from "./WithdrawForm";
 import { Modal, ModalProps, TabContent, Tabs, TokenIconWithSymbol } from "components";
 import AssetAccessor from "containers/AssetAccessor";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "translation";
 import { VToken } from "types";
+import { useAppState } from "store";
 
 
 export interface OperationModalProps {
@@ -24,7 +25,11 @@ const OperationModal: React.FC<OperationModalProps> = ({
   initialActiveTabIndex = 0,
 }) => {
   const { t } = useTranslation();
-  const [ isValidAllowance, setIsValidAllowance ] = useState(true);
+  const { isValidAllowance, setIsValidAllowance } = useAppState();
+
+  useEffect(() => {
+    setIsValidAllowance(true);
+  }, []);
 
   const tabsContent: TabContent[] = [
     {
@@ -37,8 +42,6 @@ const OperationModal: React.FC<OperationModalProps> = ({
           approveTokenMessage={t("operationModal.supply.enableToken.title", {
             symbol: vToken.underlyingToken.symbol,
           })}
-          setIsValidAllowance={setIsValidAllowance}
-          isValidAllowance={isValidAllowance}
           action="supply"
         >
           {({ asset, pool }) => (
@@ -46,8 +49,6 @@ const OperationModal: React.FC<OperationModalProps> = ({
               asset={asset}
               pool={pool}
               onCloseModal={onClose}
-              isValidAllowance={isValidAllowance}
-              setIsValidAllowance={setIsValidAllowance}
             />
           )}
         </AssetAccessor>
@@ -102,16 +103,12 @@ const OperationModal: React.FC<OperationModalProps> = ({
             symbol: vToken.underlyingToken.symbol,
           })}
           action="repay"
-          setIsValidAllowance={setIsValidAllowance}
-          isValidAllowance={isValidAllowance}
         >
           {({ asset, pool }) => (
             <RepayForm
               asset={asset}
               pool={pool}
               onCloseModal={onClose}
-              isValidAllowance={isValidAllowance}
-              setIsValidAllowance={setIsValidAllowance}
             />
           )}
         </AssetAccessor>

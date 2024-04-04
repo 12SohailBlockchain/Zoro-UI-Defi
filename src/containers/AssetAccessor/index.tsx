@@ -15,8 +15,6 @@ export interface AssetAccessorProps {
   approveTokenMessage: string;
   action: TokenAction;
   children: (props: { asset: Asset; pool: Pool }) => React.ReactNode;
-  setIsValidAllowance?: () => void;
-  isValidAllowance?: boolean;
 }
 
 const AssetAccessor: React.FC<AssetAccessorProps> = ({
@@ -26,8 +24,6 @@ const AssetAccessor: React.FC<AssetAccessorProps> = ({
   connectWalletMessage,
   approveTokenMessage,
   action,
-  setIsValidAllowance,
-  isValidAllowance,
 }) => {
   const { accountAddress } = useAuth();
 
@@ -46,7 +42,6 @@ const AssetAccessor: React.FC<AssetAccessorProps> = ({
 
   const assetInfo = useAssetInfo({ asset, type });
 
-  //console.log("underlying vtoken", vToken);
   if (
     !isTokenActionEnabled({
       token: vToken.underlyingToken,
@@ -69,8 +64,6 @@ const AssetAccessor: React.FC<AssetAccessorProps> = ({
             spenderAddress={vToken.address}
             title={approveTokenMessage}
             assetInfo={assetInfo}
-            setIsValidAllowance={setIsValidAllowance}
-            isValidAllowance={isValidAllowance}
           >
             {children({ asset, pool })}
           </ApproveToken>

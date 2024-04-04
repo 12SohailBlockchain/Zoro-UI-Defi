@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'translation';
 import { Asset, Pool, Swap, SwapError, TokenBalance } from 'types';
 import { areTokensEqual, convertTokensToWei, convertWeiToTokens, isFeatureEnabled } from 'utilities';
-
+import { useAppState } from 'store';
 
 export const PRESET_PERCENTAGES = [25, 50, 75, 100]
 
@@ -36,8 +36,6 @@ export interface SupplyFormUiProps {
   isSwapLoading: boolean
   swap?: Swap
   swapError?: SwapError
-  isValidAllowance: boolean
-  setIsValidAllowance: () => void
 }
 
 export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
@@ -52,13 +50,12 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
   isSwapLoading,
   swap,
   swapError,
-  isValidAllowance,
-  setIsValidAllowance,
 }) => {
   const { t, Trans } = useTranslation()
   const sharedStyles = useSharedStyles()
   const { CollateralModal, toggleCollateral } = useCollateral()
   const { accountAddress } = useAuth();
+  const { isValidAllowance, setIsValidAllowance } = useAppState();
   const {
     data: getTokenAllowanceData
   } = useGetAllowance(
@@ -66,7 +63,6 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
       token: formValues.fromToken,
       spenderAddress: asset.vToken.address,
       accountAddress,
-      isValidAllowance,
     },
     { enabled: !!accountAddress && !formValues.fromToken.isNative }
   );
@@ -330,16 +326,12 @@ export interface SupplyFormProps {
   asset: Asset
   pool: Pool
   onCloseModal: () => void,
-  isValidAllowance: boolean,
-  setIsValidAllowance: () => void,
 }
 
 const SupplyForm: React.FC<SupplyFormProps> = ({
   asset,
   pool,
   onCloseModal,
-  isValidAllowance,
-  setIsValidAllowance,
 }) => {
   const { accountAddress } = useAuth()
 
@@ -394,34 +386,8 @@ const SupplyForm: React.FC<SupplyFormProps> = ({
     if (!swap) {
       throw new VError({ type: 'unexpected', code: 'somethingWentWrong' })
     }
-
-    //return swapExactTokensForTokensAndSupply({
-    //swap,
-    //});
   }
 
-  //const swapInfo = useGetSwapInfo({
-  //fromToken: formValues.fromToken,
-  //fromTokenAmountTokens: formValues.amountTokens,
-  //toToken: asset.vToken.underlyingToken,
-  //direction: 'exactAmountIn',
-  //});
-
-  //return (
-  //<SupplyFormUi
-  //asset={asset}
-  //pool={pool}
-  //formValues={formValues}
-  //setFormValues={setFormValues}
-  //onCloseModal={onCloseModal}
-  //tokenBalances={tokenBalances}
-  //onSubmit={onSubmit}
-  //isSubmitting={isSubmitting}
-  //swap={swapInfo.swap}
-  //swapError={swapInfo.error}
-  //isSwapLoading={swapInfo.isLoading}
-  ///>
-  //);
   return (
     <SupplyFormUi
       asset={asset}
@@ -432,8 +398,6 @@ const SupplyForm: React.FC<SupplyFormProps> = ({
       tokenBalances={tokenBalances}
       onSubmit={onSubmit}
       isSubmitting={isSubmitting}
-      isValidAllowance={isValidAllowance}
-      setIsValidAllowance={setIsValidAllowance}
     />
   )
 }

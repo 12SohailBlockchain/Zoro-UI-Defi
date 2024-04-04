@@ -21,6 +21,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "translation";
 import { Asset, Pool, TokenBalance } from "types";
 import { areTokensEqual, convertTokensToWei, convertWeiToTokens, formatToReadablePercentage, isFeatureEnabled } from "utilities";
+import { useAppState } from "store";
 
 
 export const PRESET_PERCENTAGES = [25, 50, 75, 100];
@@ -36,8 +37,6 @@ export interface RepayFormUiProps {
     setter: (currentFormValues: FormValues) => FormValues
   ) => void;
   formValues: FormValues;
-  isValidAllowance: boolean
-  setIsValidAllowance: () => void;
   isSwapLoading: boolean;
   // swap?: Swap;
   // swapError?: SwapError;
@@ -55,14 +54,13 @@ export const RepayFormUi: React.FC<RepayFormUiProps> = ({
   isSwapLoading,
   swap,
   swapError,
-  isValidAllowance,
-  setIsValidAllowance,
 }) => {
   const { t, Trans } = useTranslation();
 
   const sharedStyles = useSharedStyles();
   const styles = useStyles();
   const { accountAddress } = useAuth();
+  const { isValidAllowance, setIsValidAllowance } = useAppState();
   const isUsingSwap = useMemo(
     () =>
       isFeatureEnabled("integratedSwap") &&
@@ -357,16 +355,12 @@ export interface RepayFormProps {
   asset: Asset;
   pool: Pool;
   onCloseModal: () => void;
-  isValidAllowance: boolean;
-  setIsValidAllowance: () => void;
 }
 
 const RepayForm: React.FC<RepayFormProps> = ({
   asset,
   pool,
   onCloseModal,
-  isValidAllowance,
-  setIsValidAllowance,
 }) => {
   const { accountAddress } = useAuth();
 
@@ -478,8 +472,6 @@ const RepayForm: React.FC<RepayFormProps> = ({
       tokenBalances={tokenBalances}
       onSubmit={onSubmit}
       isSubmitting={isSubmitting}
-      isValidAllowance={isValidAllowance}
-      setIsValidAllowance={setIsValidAllowance}
     />
   );
 };

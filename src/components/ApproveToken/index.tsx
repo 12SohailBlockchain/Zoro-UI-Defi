@@ -17,7 +17,7 @@ import useTokenApproval from "hooks/useTokenApproval";
 import React, { useContext, useState, useEffect } from "react";
 import { useTranslation } from "translation";
 import { Token } from "types";
-
+import { useAppState } from "store";
 export interface ApproveTokenUiProps {
   token: Token;
   title: string | React.ReactElement;
@@ -27,8 +27,6 @@ export interface ApproveTokenUiProps {
   isApproveTokenLoading?: boolean;
   assetInfo?: LabeledInlineContentProps[];
   disabled?: boolean;
-  setIsValidAllowance: () => void;
-  isValidAllowance?: boolean;
 }
 
 export const ApproveTokenUi: React.FC<ApproveTokenUiProps> = ({
@@ -41,13 +39,13 @@ export const ApproveTokenUi: React.FC<ApproveTokenUiProps> = ({
   isInitialLoading = false,
   isApproveTokenLoading = false,
   disabled = false,
-  isValidAllowance,
-  setIsValidAllowance,
 }) => {
   const { t } = useTranslation();
   const styles = useStyles();
   const { geolocation } = useContext(GeolocationContext);
   const [loading, setLoading] = useState(false);
+  const { isValidAllowance, setIsValidAllowance } = useAppState();
+
   const handleApproveToken = async () => {
     try {
       setLoading(true);
@@ -131,18 +129,15 @@ export interface ApproveTokenProps
     "assetInfo" | "disabled" | "title" | "token"
   > {
   spenderAddress: string;
-  setIsValidAllowance: () => void;
-  isValidAllowance: boolean;
 }
 
 export const ApproveToken: React.FC<ApproveTokenProps> = ({
   token,
   spenderAddress,
-  isValidAllowance,
-  setIsValidAllowance,
   ...rest
 }) => {
   const { accountAddress } = useAuth();
+  const { isValidAllowance } = useAppState();
 
   const {
     isTokenApprovalStatusLoading,
@@ -160,8 +155,6 @@ export const ApproveToken: React.FC<ApproveTokenProps> = ({
       {...rest}
       token={token}
       approveToken={approveToken}
-      setIsValidAllowance={setIsValidAllowance}
-      isValidAllowance={isValidAllowance}
       isTokenApproved={isValidAllowance? isTokenApproved ?? false : false}
       isApproveTokenLoading={isApproveTokenLoading}
       isInitialLoading={isTokenApprovalStatusLoading}
