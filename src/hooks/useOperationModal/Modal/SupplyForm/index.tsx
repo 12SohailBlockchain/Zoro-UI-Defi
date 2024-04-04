@@ -125,7 +125,7 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
     if (formValues.fromToken?.isNative)
       return false;
     else if (formValues.amountTokens && tokenAllowance)
-      return new BigNumber(formValues.amountTokens).isGreaterThan(tokenAllowance);
+      return new BigNumber(formValues.amountTokens).gt(tokenAllowance);
     else
       return false;
   }, [formValues.amountTokens]);
@@ -177,7 +177,7 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
 
     if (formValues.fromToken?.isNative) handleSubmit();
     else if (formValues.amountTokens && tokenAllowance) {
-      if (new BigNumber(formValues.amountTokens).isGreaterThan(tokenAllowance)) {
+      if (new BigNumber(formValues.amountTokens).gt(tokenAllowance)) {
         setIsValidAllowance(false);
       } else handleSubmit();
     }    

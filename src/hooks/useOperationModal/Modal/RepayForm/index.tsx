@@ -17,7 +17,7 @@ import { VError } from "errors";
 import useFormatTokensToReadableValue from "hooks/useFormatTokensToReadableValue";
 //import useGetSwapInfo from 'hooks/useGetSwapInfo';
 import useGetSwapTokenUserBalances from "hooks/useGetSwapTokenUserBalances";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "translation";
 import { Asset, Pool, TokenBalance } from "types";
 import { areTokensEqual, convertTokensToWei, convertWeiToTokens, formatToReadablePercentage, isFeatureEnabled } from "utilities";
@@ -197,7 +197,7 @@ export const RepayFormUi: React.FC<RepayFormUiProps> = ({
       ) {
         setIsValidAllowance(false);
       } else if (
-        new BigNumber(formValues.amountTokens).lt(tokenAllowance) &&
+        new BigNumber(formValues.amountTokens).lte(tokenAllowance) &&
         new BigNumber(formValues.amountTokens).lte(
           asset.userBorrowBalanceTokens
         )
