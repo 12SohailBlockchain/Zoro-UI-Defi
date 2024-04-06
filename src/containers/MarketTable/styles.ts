@@ -33,7 +33,7 @@ export const useStyles = () => {
     userPercentOfLimit: css`
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: space-between;
 
       > :first-of-type {
         margin-right: ${theme.spacing(2)};
@@ -44,7 +44,7 @@ export const useStyles = () => {
       }
     `,
     percentOfLimitProgressBar: css`
-      width: ${theme.spacing(13)};
+      min-width: ${theme.spacing(12)};
     `,
     white: css`
       color: ${theme.palette.text.primary};
