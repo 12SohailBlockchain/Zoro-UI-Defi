@@ -56,6 +56,8 @@ const ApproveTokenStepsUi: React.FC<ApproveTokenStepsUiProps> = ({
 
       if (error instanceof VError) {
         message = formatVErrorToReadableString(error)
+      } else if (message.toLowerCase().includes("user rejected transaction")) {
+        message = t("errors.rejectTransaction");
       }
 
       toast.error({

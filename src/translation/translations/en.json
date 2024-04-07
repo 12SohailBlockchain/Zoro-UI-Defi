@@ -205,7 +205,8 @@
     "somethingWentWrongRetrievingVoterDetails": "Something went wrong retrieving voter details",
     "somethingWentWrongRetrievingVoterHistory": "Something went wrong retrieving voter history  ",
     "undefinedAccountErrorMessage": "Account undefined",
-    "walletNotConnected": "Wallet not connected"
+    "walletNotConnected": "Wallet not connected",
+    "rejectTransaction": "Transaction was rejected by user"
   },
   "footer": {
     "latestNumber": "Latest Block:\u00a0"

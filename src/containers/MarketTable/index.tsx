@@ -9,6 +9,7 @@ import { TOKENS } from 'constants/tokens';
 import useCollateral from 'hooks/useCollateral';
 import useOperationModal from 'hooks/useOperationModal';
 
+import { useTranslation } from 'translation'
 import { useStyles } from './styles';
 import { ColumnKey, PoolAsset } from './types';
 import useGenerateColumns from './useGenerateColumns';
@@ -39,6 +40,7 @@ export const MarketTable: React.FC<MarketTableProps> = ({
   ...otherTableProps
 }) => {
   const styles = useStyles();
+  const { t } = useTranslation();
 
   const { OperationModal, openOperationModal } = useOperationModal();
   const { CollateralModal, toggleCollateral } = useCollateral();
@@ -54,10 +56,14 @@ export const MarketTable: React.FC<MarketTableProps> = ({
         comptrollerAddress: poolAssetToUpdate.pool.comptrollerAddress,
       });
     } catch (e) {
+      let { message } = e as Error;
+
       if (e instanceof VError) {
         toast.error({
           message: formatVErrorToReadableString(e),
         });
+      } else if (message.toLowerCase().includes("user rejected transaction")) {
+        message = t("errors.rejectTransaction");
       }
     }
   };

@@ -59,8 +59,10 @@ export const ApproveTokenUi: React.FC<ApproveTokenUiProps> = ({
 
       if (error instanceof VError) {
         message = formatVErrorToReadableString(error);
+      } else if (message.toLowerCase().includes("user rejected transaction")) {
+        message = t("errors.rejectTransaction");
       }
-
+      
       toast.error({
         message,
       });

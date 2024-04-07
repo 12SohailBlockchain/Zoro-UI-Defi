@@ -154,10 +154,14 @@ export const SupplyFormUi: React.FC<SupplyFormUiProps> = ({
         comptrollerAddress: pool.comptrollerAddress
       })
     } catch (e) {
+      let { message } = e as Error;
+
       if (e instanceof VError) {
         toast.error({
           message: formatVErrorToReadableString(e)
         })
+      } else if (message.toLowerCase().includes("user rejected transaction")) {
+        message = t("errors.rejectTransaction");
       }
     }
   }

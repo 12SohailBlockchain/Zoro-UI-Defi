@@ -5,6 +5,7 @@ import { toast } from 'components/Toast';
 import useSuccessfulTransactionModal, {
   OpenSuccessfulTransactionModalInput,
 } from 'hooks/useSuccessfulTransactionModal';
+import { useTranslation } from 'translation';
 
 export interface HandleMutationInput {
   mutate: () => Promise<ContractReceipt | void>;
@@ -15,6 +16,7 @@ export interface HandleMutationInput {
 
 const useHandleTransactionMutation = () => {
   const { openSuccessfulTransactionModal } = useSuccessfulTransactionModal();
+  const { t } = useTranslation();
 
   const handleMutation = async ({ mutate, successTransactionModalProps }: HandleMutationInput) => {
     try {
@@ -31,6 +33,8 @@ const useHandleTransactionMutation = () => {
 
       if (error instanceof VError) {
         message = formatVErrorToReadableString(error);
+      } else if (message.toLowerCase().includes("user rejected transaction")) {
+        message = t("errors.rejectTransaction");
       }
 
       toast.error({
