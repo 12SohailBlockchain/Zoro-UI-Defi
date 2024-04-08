@@ -1,6 +1,10 @@
 # zoro-protocol
 
-zoro-protocol
+## Availble Environment
+- Win 10 or MacOS
+- Node v18+
+
+## Running Script
 Run:
 
 - yarn

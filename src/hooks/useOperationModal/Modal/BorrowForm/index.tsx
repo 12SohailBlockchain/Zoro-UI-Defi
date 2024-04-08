@@ -52,7 +52,7 @@ export const BorrowFormUi: React.FC<BorrowFormUiProps> = ({
       !pool ||
       pool.userBorrowBalanceCents === undefined ||
       !pool.userBorrowLimitCents ||
-      pool.userBorrowBalanceCents.isGreaterThanOrEqualTo(
+      pool.userBorrowBalanceCents.gte(
         pool.userBorrowLimitCents
       )
     ) {
@@ -63,36 +63,36 @@ export const BorrowFormUi: React.FC<BorrowFormUiProps> = ({
       pool.userBorrowBalanceCents
     );
     const { liquidityCents } = asset;
-
-    let maxTokens = BigNumber.minimum(
+    
+    let maxTokens = BigNumber.min(
       liquidityCents,
       marginWithBorrowLimitCents
     )
       // Convert dollars to tokens
-      .dividedBy(asset.tokenPriceCents);
+      .div(asset.tokenPriceCents);
 
     // Take borrow cap in consideration if asset has one
     if (asset.borrowCapTokens) {
       const marginWithBorrowCapTokens = asset.borrowCapTokens.minus(
         asset.borrowBalanceTokens
       );
-      maxTokens = marginWithBorrowCapTokens.isLessThanOrEqualTo(0)
+      maxTokens = marginWithBorrowCapTokens.lte(0)
         ? new BigNumber(0)
-        : BigNumber.minimum(maxTokens, marginWithBorrowCapTokens);
+        : BigNumber.min(maxTokens, marginWithBorrowCapTokens);
     }
 
     const safeBorrowLimitCents = pool.userBorrowLimitCents
-      .multipliedBy(SAFE_BORROW_LIMIT_PERCENTAGE)
-      .dividedBy(100);
+      .times(SAFE_BORROW_LIMIT_PERCENTAGE)
+      .div(100);
     const marginWithSafeBorrowLimitCents = safeBorrowLimitCents.minus(
       pool.userBorrowBalanceCents
     );
 
-    const safeMaxTokens = pool.userBorrowBalanceCents.isLessThan(
+    const safeMaxTokens = pool.userBorrowBalanceCents.lt(
       safeBorrowLimitCents
     )
       ? // Convert dollars to tokens
-        new BigNumber(marginWithSafeBorrowLimitCents).dividedBy(
+        new BigNumber(marginWithSafeBorrowLimitCents).div(
           asset.tokenPriceCents
         )
       : new BigNumber(0);

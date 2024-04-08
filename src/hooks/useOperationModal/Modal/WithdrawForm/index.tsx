@@ -45,8 +45,12 @@ export const WithdrawFormUi: React.FC<WithdrawFormUiProps> = ({
   const limitTokens = React.useMemo(() => {
     // If asset isn't used as collateral user can withdraw the entire supply
     // balance without affecting their borrow limit
-    let maxTokensBeforeLiquidation = new BigNumber(
-      asset.userSupplyBalanceTokens
+    const { liquidityCents } = asset;
+    const liquidityTokenAmounts = liquidityCents.div(asset.tokenPriceCents)
+
+    let maxTokensBeforeLiquidation = BigNumber.min(
+      asset.userSupplyBalanceTokens,
+      liquidityTokenAmounts
     );
 
     if (
@@ -63,7 +67,7 @@ export const WithdrawFormUi: React.FC<WithdrawFormUiProps> = ({
 
     // Return 0 if borrow limit has already been reached
     if (
-      pool.userBorrowBalanceCents.isGreaterThanOrEqualTo(
+      pool.userBorrowBalanceCents.gte(
         pool.userBorrowLimitCents
       )
     ) {
@@ -74,20 +78,21 @@ export const WithdrawFormUi: React.FC<WithdrawFormUiProps> = ({
       pool.userBorrowBalanceCents
     );
 
-    const collateralAmountPerTokenCents = asset.tokenPriceCents.multipliedBy(
+    const collateralAmountPerTokenCents = asset.tokenPriceCents.times(
       asset.collateralFactor
     );
 
     maxTokensBeforeLiquidation = new BigNumber(marginWithBorrowLimitCents)
-      .dividedBy(collateralAmountPerTokenCents)
+      .div(collateralAmountPerTokenCents)
       .dp(asset.vToken.underlyingToken.decimals, BigNumber.ROUND_DOWN);
 
-    maxTokensBeforeLiquidation = BigNumber.minimum(
+    maxTokensBeforeLiquidation = BigNumber.min(
       maxTokensBeforeLiquidation,
-      asset.userSupplyBalanceTokens
+      asset.userSupplyBalanceTokens,
+      liquidityTokenAmounts
     );
 
-    maxTokensBeforeLiquidation = maxTokensBeforeLiquidation.isLessThanOrEqualTo(
+    maxTokensBeforeLiquidation = maxTokensBeforeLiquidation.lte(
       0
     )
       ? new BigNumber(0)
